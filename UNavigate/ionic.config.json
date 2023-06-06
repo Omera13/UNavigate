@@ -1,0 +1,7 @@
+{
+  "name": "UNavigate",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}

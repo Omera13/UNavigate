@@ -1,2 +1,0 @@
-# UNavigate
-Campus Navigation
