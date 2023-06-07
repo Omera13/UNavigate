@@ -23,7 +23,7 @@ function MapComponent() {
   let [viewport, setViewport] = useState({
     longitude: 34.83774,
     latitude: 32.17615,
-    zoom: 16
+    zoom: 17
   });
 
   let [userLocation, setUserLocation] = useState<UserLocation | null>(null);
@@ -80,7 +80,7 @@ function MapComponent() {
       style={{width: '100%', height: '100%'}}
       mapboxAccessToken={MY_TOKEN}
       mapStyle="mapbox://styles/unavigate/clibi878i02we01premvo8o3d"
-      onMove={evt => setViewport(evt.viewState)}
+      onMove={(evt : any) => setViewport(evt.viewState)}
     >
       {/* <IonSearchbar onIonChange={e => setDestination(e.target.value || '')}></IonSearchbar> */}
       {/* <IonSearchbar><input type="text" onChange={e => setDestination(e.target.value || '')} /></IonSearchbar> */}
@@ -91,7 +91,7 @@ function MapComponent() {
         trackUserLocation={true}
         showUserLocation={true}
         showUserHeading={true}
-        onGeolocate={pos => {
+        onGeolocate={(pos : any) => {
           const { latitude, longitude } = pos.coords;
           setUserLocation({latitude, longitude});
         }}
