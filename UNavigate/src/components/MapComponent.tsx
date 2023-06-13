@@ -30,6 +30,7 @@ interface Step {
 // Define your Result type (modify this according to your actual result structure)
 interface Result {
   place_name: string;
+  place_he_name: string;
   center: [number, number];
 }
 
@@ -37,6 +38,7 @@ interface Result {
 interface Feature {
   properties: {
     name: string;
+    name_he: string;
   };
   geometry: {
     coordinates: [number, number];
@@ -73,10 +75,11 @@ function MapComponent() {
   const externalGeocoder1 = async function(query : string) {
     const url = `https://api.mapbox.com/datasets/v1/unavigate/cliebrq8v1xck2no5fwlyphfa/features?access_token=pk.eyJ1IjoidW5hdmlnYXRlIiwiYSI6ImNsaWJoc2l1ODBkbHEzZW11emw0cGZucTAifQ.otIbJBL8CWmaA9dGYNkZHA`;
     const response = await axios.get(url);
-    const formattedData = response.data.features.filter((feature: Feature) => feature.properties.name === query)
+    const formattedData = response.data.features.filter((feature: Feature) => feature.properties.name === query || feature.properties.name_he === query)
       .map((feature: Feature) => {
       return {
         place_name: feature.properties.name,
+        place_he_name: feature.properties.name_he,
         center: feature.geometry.coordinates
       };
     });
