@@ -12,6 +12,12 @@ import './GeocoderStyles.css';
 
 const MY_TOKEN = 'pk.eyJ1IjoidW5hdmlnYXRlIiwiYSI6ImNsaWJoc2l1ODBkbHEzZW11emw0cGZucTAifQ.otIbJBL8CWmaA9dGYNkZHA'
 
+const DATA = await axios.get(`https://api.mapbox.com/datasets/v1/unavigate/cliebrq8v1xck2no5fwlyphfa/features?access_token=pk.eyJ1IjoidW5hdmlnYXRlIiwiYSI6ImNsaWJoc2l1ODBkbHEzZW11emw0cGZucTAifQ.otIbJBL8CWmaA9dGYNkZHA`);
+
+const BOUNDS = [
+  [34.83344663903663, 32.17459603730459],
+  [34.840221888172216, 32.17770576661667]];
+
 interface UserLocation {
   latitude: number;
   longitude: number;
@@ -31,6 +37,7 @@ interface Step {
 interface Result {
   place_name: string;
   place_he_name: string;
+  place_building: string;
   center: [number, number];
 }
 
@@ -39,6 +46,7 @@ interface Feature {
   properties: {
     name: string;
     name_he: string;
+    building: string;
   };
   geometry: {
     coordinates: [number, number];
@@ -54,7 +62,8 @@ function MapComponent() {
   let [viewport, setViewport] = useState({
     longitude: 34.83774,
     latitude: 32.17615,
-    zoom: 17
+    zoom: 17,
+    maxBounds: BOUNDS
   });
 
   let [userLocation, setUserLocation] = useState<UserLocation | null>(null);
@@ -63,6 +72,7 @@ function MapComponent() {
   let [route, setRoute] = useState<any>(null);
   let [duration, setDuration] = useState<number | null>(null);
   let [instructions, setInstructions] = useState<Step[] | null>(null);
+  let [destName, setDestName] = useState<string | null>(null);
 
   const geolocateControlStyle= {
     right: 10,
@@ -71,19 +81,19 @@ function MapComponent() {
 
   const mapRef = useRef<any>(null);
 
-
-  const externalGeocoder1 = async function(query : string) {
-    const url = `https://api.mapbox.com/datasets/v1/unavigate/cliebrq8v1xck2no5fwlyphfa/features?access_token=pk.eyJ1IjoidW5hdmlnYXRlIiwiYSI6ImNsaWJoc2l1ODBkbHEzZW11emw0cGZucTAifQ.otIbJBL8CWmaA9dGYNkZHA`;
-    const response = await axios.get(url);
-    const formattedData = response.data.features.filter((feature: Feature) => feature.properties.name === query || feature.properties.name_he === query)
+  const localGeocoder = function(query : string) {
+    const formattedData = DATA.data.features.filter((feature: Feature) =>  { 
+      return feature.properties.name_he.includes(query) ||
+             feature.properties.name.toLowerCase().includes(query.toLowerCase()) || 
+             (feature.properties.building ? query.toLowerCase().startsWith(feature.properties.building.toLowerCase()) : false)})
       .map((feature: Feature) => {
       return {
         place_name: feature.properties.name,
         place_he_name: feature.properties.name_he,
+        place_building: feature.properties.building,
         center: feature.geometry.coordinates
       };
     });
-    console.log(formattedData);
     return formattedData;
   };
 
@@ -124,17 +134,30 @@ function MapComponent() {
           accessToken: MY_TOKEN,
           mapboxgl: mapboxgl,
           marker: false,
-          externalGeocoder: externalGeocoder1,
+          localGeocoder: localGeocoder,
+          localGeocoderOnly: true,
+          zoom: 18,
+          // filter: ,
+          // language
           placeholder: 'Search for a destination'
         });
         const map = mapRef.current.getMap();
         map.addControl(geocoder, 'top-left');
         
         geocoder.on('result', function(e) {
+          setDestName('to ' + e.result.place_name);
           const [long, lat] = e.result.center;
           setDestCoordinates({dest_latitude: lat, dest_longtitude: long});
         });
-    
+
+        geocoder.on('clear', function(e) {
+          setDestName(null);
+          setDestCoordinates(null);
+          setRoute(null);
+          setDuration(null);
+          setInstructions(null);
+        });
+
         mapRef.current = map; 
       }}
     >
@@ -161,7 +184,7 @@ function MapComponent() {
           />
         </Source>
       )}
-      <RouteDetails duration={duration} instructions={instructions} />
+      <RouteDetails duration={duration} instructions={instructions} destName={destName}/>
     </ReactMapGL>
     </>
   );
