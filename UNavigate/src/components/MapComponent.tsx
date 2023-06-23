@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMapGL, { GeolocateControl, NavigationControl, Source, Layer} from 'react-map-gl';
 import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
-import { IonSearchbar } from '@ionic/react';
+import { IonSearchbar, IonPopover, IonList, IonItem, IonListHeader, IonButton, IonIcon } from '@ionic/react';
 import axios from 'axios';
 import { lineString } from '@turf/helpers';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -9,14 +9,14 @@ import RouteDetails from './RouteDetails';
 import SearchBar from './SearchBar';
 import mapboxgl from 'mapbox-gl';
 import './GeocoderStyles.css';
+import coffeeIcon from './../filter-icons/cafe.svg';
+import waterIcon from './../filter-icons/drinking-water.svg';
+import beveragesIcon from './../filter-icons/Beverages.svg';
+import microwavesIcon from './../filter-icons/Microwave.svg';
 
 const MY_TOKEN = 'pk.eyJ1IjoidW5hdmlnYXRlIiwiYSI6ImNsaWJoc2l1ODBkbHEzZW11emw0cGZucTAifQ.otIbJBL8CWmaA9dGYNkZHA'
 
-const DATA = await axios.get(`https://api.mapbox.com/datasets/v1/unavigate/cliebrq8v1xck2no5fwlyphfa/features?access_token=pk.eyJ1IjoidW5hdmlnYXRlIiwiYSI6ImNsaWJoc2l1ODBkbHEzZW11emw0cGZucTAifQ.otIbJBL8CWmaA9dGYNkZHA`);
-
-const BOUNDS = [
-  [34.83344663903663, 32.17459603730459],
-  [34.840221888172216, 32.17770576661667]];
+const baseURL = 'http://localhost:3080';
 
 interface UserLocation {
   latitude: number;
@@ -33,7 +33,6 @@ interface Step {
   coordinates: [number, number];
 }
 
-// Define your Result type (modify this according to your actual result structure)
 interface Result {
   place_name: string;
   place_he_name: string;
@@ -41,38 +40,34 @@ interface Result {
   center: [number, number];
 }
 
-// Define the structure of Feature returned from your API (modify this according to actual API response)
-interface Feature {
-  properties: {
-    name: string;
-    name_he: string;
-    building: string;
-  };
-  geometry: {
-    coordinates: [number, number];
-  };
-}
-
-// Define the structure of the API response (modify this according to actual API response)
-interface ApiResponse {
-  features: Feature[];
-}
-
 function MapComponent() {
-  let [viewport, setViewport] = useState({
-    longitude: 34.83774,
-    latitude: 32.17615,
-    zoom: 17,
-    maxBounds: BOUNDS
+  const [viewport, setViewport] = useState({
+    longitude: 34.836179,
+    latitude: 32.176097,
+    maxBounds: [
+      [34.83178, 32.17490],
+      [34.84116, 32.17832]
+      // [34.8345, 32.1750],
+      // [34.8380, 32.1770],
+      // [34.8345, 32.1770],
+      // [34.8380, 32.1750]
+    ],
+    // zoom: 17,
   });
 
-  let [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  let [destination, setDestination] = useState<string | null>(null);
-  let [destCoordinates, setDestCoordinates] = useState<DestCoordinates | null>(null);
-  let [route, setRoute] = useState<any>(null);
-  let [duration, setDuration] = useState<number | null>(null);
-  let [instructions, setInstructions] = useState<Step[] | null>(null);
-  let [destName, setDestName] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [destCoordinates, setDestCoordinates] = useState<DestCoordinates | null>(null);
+  const [route, setRoute] = useState<any>(null);
+  const [duration, setDuration] = useState<number | null>(null);
+  const [instructions, setInstructions] = useState<Step[] | null>(null);
+  const [destName, setDestName] = useState<string | null>(null);
+  const [searchValue, setSearchValue] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<Result[]>([]);
+  const [showCoffee, setShowCoffee] = useState(false);
+  const [showWater, setShowWater] = useState(false);
+  const [showBeverages, setShowBeverages] = useState(false);
+  const [showMicrowaves, setShowMicrowaves] = useState(false);
+  const [showLabel, setShowLabel] = useState(false);
 
   const geolocateControlStyle= {
     right: 10,
@@ -81,21 +76,78 @@ function MapComponent() {
 
   const mapRef = useRef<any>(null);
 
-  const localGeocoder = function(query : string) {
-    const formattedData = DATA.data.features.filter((feature: Feature) =>  { 
-      return feature.properties.name_he.includes(query) ||
-             feature.properties.name.toLowerCase().includes(query.toLowerCase()) || 
-             (feature.properties.building ? query.toLowerCase().startsWith(feature.properties.building.toLowerCase()) : false)})
-      .map((feature: Feature) => {
-      return {
-        place_name: feature.properties.name,
-        place_he_name: feature.properties.name_he,
-        place_building: feature.properties.building,
-        center: feature.geometry.coordinates
-      };
-    });
-    return formattedData;
+  //Need to be fixed- auto relocate to user location
+  const geolocateControlRef = React.useCallback((ref:any) => {
+    if (ref) {
+      ref.trigger();
+    }
+  }, []);
+
+  const localGeocoder = async function (query: string) {
+    const formattedData = await axios.get(`${baseURL}/matches?query=${query}`);
+    setSuggestions(formattedData.data);
   };
+
+  const handleSelect = async (result: Result) => {
+    setDestName(result.place_name);
+    const [long, lat] = result.center;
+    setDestCoordinates({dest_latitude: lat, dest_longtitude: long});
+    setSuggestions([]);
+  };
+
+  useEffect(() => {
+    if (searchValue !== null)
+      localGeocoder(searchValue);
+    if (route && searchValue === '')
+      setRoute(null);
+      setInstructions(null);
+      setDuration(null);
+  }, [searchValue]);
+
+  useEffect(() => {
+    if (mapRef.current) {
+        const map1 = mapRef.current;
+        if (map1.getLayer('coffee')) { 
+            map1.setLayoutProperty('coffee', 'visibility', showCoffee ? 'visible' : 'none');
+        }
+    }
+  }, [showCoffee]);
+
+  useEffect(() => {
+    if (mapRef.current) {
+        const map1 = mapRef.current;
+        if (map1.getLayer('microwave')) { 
+            map1.setLayoutProperty('microwave', 'visibility', showMicrowaves ? 'visible' : 'none');
+        }
+    }
+  }, [showMicrowaves]);
+
+  useEffect(() => {
+    if (mapRef.current) {
+        const map1 = mapRef.current;
+        if (map1.getLayer('drinking-water')) {
+            map1.setLayoutProperty('drinking-water', 'visibility', showWater ? 'visible' : 'none');
+        }
+    }
+  }, [showWater]);
+
+  useEffect(() => {
+    if (mapRef.current) {
+        const map1 = mapRef.current;
+        if (map1.getLayer('beverages')) {
+            map1.setLayoutProperty('beverages', 'visibility', showBeverages ? 'visible' : 'none');
+        }
+    }
+  }, [showBeverages]);
+
+  useEffect(() => {
+    if (mapRef.current) {
+      const map1 = mapRef.current;
+      if (map1.getLayer('building-labels')) {
+        map1.setLayoutProperty('building-labels', 'text-field', showLabel ? ['get', 'name_he'] : ['get', 'name']);
+      }
+    }
+  }, [showLabel]);
 
   useEffect(() => {
     if (userLocation && destCoordinates) {
@@ -118,7 +170,7 @@ function MapComponent() {
       
       fetchRoute();
     }
-  }, [userLocation, destination, destCoordinates]);
+  }, [userLocation, destCoordinates]);
 
   return (
     <>
@@ -130,49 +182,52 @@ function MapComponent() {
       mapStyle="mapbox://styles/unavigate/clibi878i02we01premvo8o3d"
       onMove={(evt : any) => setViewport(evt.viewState)}
       onLoad={() => {
-        const geocoder = new MapboxGeocoder({
-          accessToken: MY_TOKEN,
-          mapboxgl: mapboxgl,
-          marker: false,
-          localGeocoder: localGeocoder,
-          localGeocoderOnly: true,
-          zoom: 18,
-          // filter: ,
-          // language
-          placeholder: 'Search for a destination'
-        });
         const map = mapRef.current.getMap();
-        map.addControl(geocoder, 'top-left');
-        
-        geocoder.on('result', function(e) {
-          setDestName('to ' + e.result.place_name);
-          const [long, lat] = e.result.center;
-          setDestCoordinates({dest_latitude: lat, dest_longtitude: long});
-        });
-
-        geocoder.on('clear', function(e) {
-          setDestName(null);
-          setDestCoordinates(null);
-          setRoute(null);
-          setDuration(null);
-          setInstructions(null);
-        });
-
-        mapRef.current = map; 
+        mapRef.current = map;
       }}
     >
-      <NavigationControl/>
+      <IonSearchbar
+        placeholder="Search for a destination"
+        onIonInput={(e: any) => {setSearchValue(e.detail.value)}}
+        value={searchValue}
+        onIonClear={() => { setSuggestions([]); setSearchValue(null); setDestName(null); setDestCoordinates(null); setRoute(null); setDuration(null); setInstructions(null); }}
+        style={{backgroundColor: 'white', '--background': 'white', color: 'black'}}
+      ></IonSearchbar>
+      <IonList style={{backgroundColor: '#0f2d96', '--background': '#0f2d96'}}>
+        <IonListHeader style={{backgroundColor: '#0f2d96', '--background': '#0f2d96'}}>
+          <IonButton onClick={() => setShowCoffee(!showCoffee)} style={{ color: 'white' }}><img src={coffeeIcon} style={{ marginRight: '10px' }}/>Coffee</IonButton>
+          <IonButton onClick={() => setShowWater(!showWater)} style={{ color: 'white' }}><img src={waterIcon} style={{ marginRight: '10px' }}/>Drinking Water</IonButton>
+          <IonButton onClick={() => setShowBeverages(!showBeverages)} style={{ color: 'white' }}><img src={beveragesIcon} style={{ marginRight: '10px' }}/>Beverages</IonButton>
+          <IonButton onClick={() => setShowMicrowaves(!showMicrowaves)} style={{ color: 'white' }}><img src={microwavesIcon} style={{ marginRight: '10px' }}/>Microwaves</IonButton>
+        </IonListHeader>
+        {suggestions.map((suggestion, index) => (
+          <IonItem
+            style={{'--background': 'rgba(15, 45, 150, 0.5)', backgroundColor: 'rgba(15, 45, 150, 0.5)'}}
+            key={index}
+            onClick={() => handleSelect(suggestion)}
+          >
+            {suggestion.place_name}
+          </IonItem>
+        ))}
+      </IonList>
       <GeolocateControl
+        ref={geolocateControlRef}
+        position="bottom-right"
         style={geolocateControlStyle}
         positionOptions={{enableHighAccuracy: true}}
         trackUserLocation={true}
         showUserLocation={true}
         showUserHeading={true}
+        showAccuracyCircle={true}
         onGeolocate={(pos : any) => {
           const { latitude, longitude } = pos.coords;
           setUserLocation({latitude, longitude});
         }}
+        onOutOfMaxBounds={() => {
+          alert("Seems like you're out of campus!");
+        }}
       />
+      <NavigationControl position="bottom-right"/>
       {route && (
         <Source id="route" type="geojson" data={route}>
           <Layer
@@ -183,8 +238,12 @@ function MapComponent() {
             paint={{ "line-color": "#888", "line-width": 8 }}
           />
         </Source>
-      )}
-      <RouteDetails duration={duration} instructions={instructions} destName={destName}/>
+      ) }
+      {route && (
+        <RouteDetails duration={duration} instructions={instructions} destName={destName}/>) }
+      <IonButton style={{position: 'absolute', bottom: '25px', left: '0', width: '2.5%',
+          height: '4%', marginLeft: '10px', '--background':'white', 'color':'black'}} 
+          onClick={() => setShowLabel(!showLabel)}>{showLabel ? "EN" : "HE"}</IonButton>
     </ReactMapGL>
     </>
   );
