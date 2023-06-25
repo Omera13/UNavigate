@@ -186,30 +186,105 @@ function MapComponent() {
         mapRef.current = map;
       }}
     >
-      <IonSearchbar
-        placeholder="Search for a destination"
-        onIonInput={(e: any) => {setSearchValue(e.detail.value)}}
-        value={searchValue}
-        onIonClear={() => { setSuggestions([]); setSearchValue(null); setDestName(null); setDestCoordinates(null); setRoute(null); setDuration(null); setInstructions(null); }}
-        style={{backgroundColor: 'white', '--background': 'white', color: 'black'}}
-      ></IonSearchbar>
-      <IonList style={{backgroundColor: '#0f2d96', '--background': '#0f2d96'}}>
-        <IonListHeader style={{backgroundColor: '#0f2d96', '--background': '#0f2d96'}}>
-          <IonButton onClick={() => setShowCoffee(!showCoffee)} style={{ color: 'white' }}><img src={coffeeIcon} style={{ marginRight: '10px' }}/>Coffee</IonButton>
-          <IonButton onClick={() => setShowWater(!showWater)} style={{ color: 'white' }}><img src={waterIcon} style={{ marginRight: '10px' }}/>Drinking Water</IonButton>
-          <IonButton onClick={() => setShowBeverages(!showBeverages)} style={{ color: 'white' }}><img src={beveragesIcon} style={{ marginRight: '10px' }}/>Beverages</IonButton>
-          <IonButton onClick={() => setShowMicrowaves(!showMicrowaves)} style={{ color: 'white' }}><img src={microwavesIcon} style={{ marginRight: '10px' }}/>Microwaves</IonButton>
-        </IonListHeader>
-        {suggestions.map((suggestion, index) => (
-          <IonItem
-            style={{'--background': 'rgba(15, 45, 150, 0.5)', backgroundColor: 'rgba(15, 45, 150, 0.5)'}}
-            key={index}
-            onClick={() => handleSelect(suggestion)}
-          >
-            {suggestion.place_name}
-          </IonItem>
-        ))}
-      </IonList>
+<IonSearchbar
+  placeholder="Search for a destination"
+  onIonInput={(e: any) => {setSearchValue(e.detail.value)}}
+  value={searchValue}
+  onIonClear={() => { setSuggestions([]); setSearchValue(null); setDestName(null); setDestCoordinates(null); setRoute(null); setDuration(null); setInstructions(null); }}
+  style={{backgroundColor: 'white',textItems:'center','--background': 'white', color: 'black'}}
+></IonSearchbar>
+
+<div style={{display: 'flex'}}>
+  <IonList style={{
+      backgroundColor: '#0f2d96',
+      minWidth: '70px',
+      '--background': '#0f2d96',
+      display: 'flex',
+      flexDirection: 'column',
+      width: "7.5vw",
+      height: "100vh"}}>
+    <IonButton onClick={() => setShowCoffee(!showCoffee)}
+    className={showCoffee ? 'clicked' : ''}
+    style={{
+    backgroundColor: '#0f2d96',
+    '--background': '#0f2d96',
+    fontSize:"0.7em",
+    color: 'white',
+    display: 'flex',
+    flexDirection: 'column',
+    height: '10vh',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(showCoffee ? { '--background': '#0c2271','color':'#b9b9b9'  } : {})}}>
+      <div>
+        <img src={coffeeIcon} style={{ marginBottom: '10px' }}/>
+        <div>Coffee</div>
+      </div>
+    </IonButton>
+    <IonButton onClick={() => setShowWater(!showWater) } style={{
+        backgroundColor: '#0f2d96',
+        '--background': '#0f2d96',
+        fontSize:"0.7em",
+        color: 'white',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '10vh',
+        alignItems: 'center',
+        justifyContent: 'center' ,
+        ...(showWater ? { '--background': '#0c2271', 'color':'#b9b9b9' } : {})}}>
+      <div>
+        <img src={waterIcon} style={{ marginBottom: '10px' }}/>
+        <div>Drinking Water</div>
+      </div>
+    </IonButton>
+    <IonButton onClick={() => setShowBeverages(!showBeverages)} style={{
+        backgroundColor: '#0f2d96',
+        fontSize:"0.7em",
+        '--background': '#0f2d96',
+        color: 'white', display: 'flex',
+        flexDirection: 'column',
+        height: '10vh',
+        alignItems: 'center',
+        justifyContent: 'center' ,
+        ...(showBeverages ? { '--background': '#0c2271', 'color':'#b9b9b9' } : {})}}>
+      <div>
+        <img src={beveragesIcon} style={{ marginBottom: '10px' }}/>
+        <div>Beverages</div>
+      </div>
+    </IonButton>
+    <IonButton onClick={() => setShowMicrowaves(!showMicrowaves)} style={{
+        backgroundColor: '#0f2d96',
+        '--background': '#0f2d96',
+        fontSize:"0.7em",
+        color: 'white', display: 'flex',
+        flexDirection: 'column',
+        height: '10vh',
+        alignItems: 'center',
+        justifyContent: 'center' ,
+        ...(showMicrowaves ? { '--background': '#0c2271', 'color':'#b9b9b9' } : {})}}>
+      <div>
+        <img src={microwavesIcon} style={{ marginBottom: '10px' }}/>
+        <div>Microwaves</div>
+      </div>
+    </IonButton>
+      <IonButton style={{position: 'flex', '--background':'#0059D9', 'color':'white'}}
+          onClick={() => setShowLabel(!showLabel)}>{showLabel ? "EN" : "HE"}</IonButton>
+</IonList>
+
+  {searchValue && (
+    <IonList style={{backgroundColor: '#0f2d96', '--background': 'rgba(15, 45, 150, 0.5)', width: "100%", height: "15%"}}>
+      {suggestions.map((suggestion, index) => (
+        <IonItem
+          style={{color: 'white', '--background': 'rgba(15, 45, 150,0.5)'}}
+          key={index}
+          onClick={() => handleSelect(suggestion)}
+        >
+          {suggestion.place_name}
+        </IonItem>
+      ))}
+    </IonList>
+  )}
+</div>
       <GeolocateControl
         ref={geolocateControlRef}
         position="bottom-right"
@@ -241,9 +316,7 @@ function MapComponent() {
       ) }
       {route && (
         <RouteDetails duration={duration} instructions={instructions} destName={destName}/>) }
-      <IonButton style={{position: 'absolute', bottom: '25px', left: '0', width: '2.5%',
-          height: '4%', marginLeft: '10px', '--background':'white', 'color':'black'}} 
-          onClick={() => setShowLabel(!showLabel)}>{showLabel ? "EN" : "HE"}</IonButton>
+
     </ReactMapGL>
     </>
   );

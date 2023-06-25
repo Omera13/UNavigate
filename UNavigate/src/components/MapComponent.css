@@ -1,0 +1,36 @@
+
+
+.mapboxgl-ctrl-geocoder {
+    min-width:100%;
+}
+
+.white-bar {
+  width: 100%;
+  height: 2.5%;
+  background-color: #FFFFFF;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+#copy{
+font-size:70%;
+color:#b3b3b3;
+}
+
+.filter{
+padding-left: 2%;
+}
+.blue-bar {
+  width: 100%;
+  height: 8%;
+  background-color: #0f2d96;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.blue-bar img {
+ padding-left: 3%;
+  height: 70%;
+  align-content:left;
+}
