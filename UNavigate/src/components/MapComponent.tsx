@@ -47,10 +47,10 @@ function MapComponent() {
     maxBounds: [
       [34.83178, 32.17490],
       [34.84116, 32.17832]
-      // [34.8345, 32.1750],
-      // [34.8380, 32.1770],
-      // [34.8345, 32.1770],
-      // [34.8380, 32.1750]
+//       // [34.8345, 32.1750],
+//       // [34.8380, 32.1770],
+//       // [34.8345, 32.1770],
+//       // [34.8380, 32.1750]
     ],
     // zoom: 17,
   });
@@ -94,7 +94,11 @@ function MapComponent() {
     setDestCoordinates({dest_latitude: lat, dest_longtitude: long});
     setSuggestions([]);
   };
+    const [language, setLanguage] = useState('en'); // Set default language to English
 
+    const changeLanguage = () => {
+      setLanguage(language === 'en' ? 'he' : 'en'); // Toggle language between English and Hebrew
+    };
   useEffect(() => {
     if (searchValue !== null)
       localGeocoder(searchValue);
@@ -154,7 +158,7 @@ function MapComponent() {
       const { latitude, longitude } = userLocation;
       const { dest_latitude, dest_longtitude } = destCoordinates;
       const fetchRoute = async () => {
-        const response = await axios.get(`https://api.mapbox.com/directions/v5/mapbox/walking/${longitude},${latitude};${dest_longtitude},${dest_latitude}?steps=true&geometries=geojson&access_token=${MY_TOKEN}`);
+        const response = await axios.get(`https://api.mapbox.com/directions/v5/mapbox/walking/${longitude},${latitude};${dest_longtitude},${dest_latitude}?steps=true&geometries=geojson&access_token=${MY_TOKEN}&language=${language}`);
         const { coordinates } = response.data.routes[0].geometry;
         const geojson = lineString(coordinates);
         setRoute(geojson);
@@ -170,7 +174,7 @@ function MapComponent() {
       
       fetchRoute();
     }
-  }, [userLocation, destCoordinates]);
+  }, [userLocation, destCoordinates, language]);
 
   return (
     <>
@@ -268,7 +272,13 @@ function MapComponent() {
       </div>
     </IonButton>
       <IonButton style={{position: 'flex', '--background':'#0059D9', 'color':'white'}}
-          onClick={() => setShowLabel(!showLabel)}>{showLabel ? "EN" : "HE"}</IonButton>
+           onClick={() => {
+                setShowLabel(!showLabel);
+                changeLanguage();
+            }}
+            >
+            {showLabel ? "EN" : "HE"}
+      </IonButton>
 </IonList>
 
   {searchValue && (
@@ -284,6 +294,7 @@ function MapComponent() {
       ))}
     </IonList>
   )}
+
 </div>
       <GeolocateControl
         ref={geolocateControlRef}
@@ -301,7 +312,9 @@ function MapComponent() {
         onOutOfMaxBounds={() => {
           alert("Seems like you're out of campus!");
         }}
+
       />
+      <IonButton onClick={changeLanguage}>Change Language</IonButton>
       <NavigationControl position="bottom-right"/>
       {route && (
         <Source id="route" type="geojson" data={route}>
@@ -314,8 +327,11 @@ function MapComponent() {
           />
         </Source>
       ) }
+
       {route && (
+
         <RouteDetails duration={duration} instructions={instructions} destName={destName}/>) }
+
 
     </ReactMapGL>
     </>
