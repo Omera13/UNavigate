@@ -9,15 +9,19 @@ app = FastAPI()
 
 MY_TOKEN = 'pk.eyJ1IjoidW5hdmlnYXRlIiwiYSI6ImNsaWJoc2l1ODBkbHEzZW11emw0cGZucTAifQ.otIbJBL8CWmaA9dGYNkZHA'
 
+# Create the schema for the index
 BUILDINGS_SCHEMA = Schema(
         place_name=TEXT(stored=True),
         place_he_name=TEXT(stored=True),
         place_building=TEXT(stored=True),
         center=STORED)
-if not os.path.exists("./Server/BuildingsIndexDir"):
-    os.mkdir("./Server/BuildingsIndexDir")
-BUILDINGS_IDX = index.create_in("./Server/BuildingsIndexDir", BUILDINGS_SCHEMA)
+# Create the index dir if it doesn't exist
+if not os.path.exists("./BuildingsIndexDir"):
+    os.mkdir("./BuildingsIndexDir")
+# Create the index
+BUILDINGS_IDX = index.create_in("./BuildingsIndexDir", BUILDINGS_SCHEMA)
 
+# Create the database for the using our custom map data from mapbox
 def create_buildings():
     buildings = requests.get(f'https://api.mapbox.com/datasets/v1/unavigate/cliebrq8v1xck2no5fwlyphfa/features?access_token={MY_TOKEN}').json()
     writer = BUILDINGS_IDX.writer()
@@ -29,19 +33,7 @@ def create_buildings():
             center=feature['geometry']['coordinates'])
     writer.commit()
 
-# COFFEE_SHOPS = requests.get(f'https://api.mapbox.com/datasets/v1/unavigate/clikg7dyp002m2oo54epszo5s/features?access_token={MY_TOKEN}').json()
-
-# DRINKING_WATER = requests.get(f'https://api.mapbox.com/datasets/v1/unavigate/clj1hkgew0wpc2nobjcsdpp2f/features?access_token={MY_TOKEN}').json()
-
-# BEVERAGES = requests.get(f'https://api.mapbox.com/datasets/v1/unavigate/clj1jm99q0x3l2hobezuu6whb/features?access_token={MY_TOKEN}').json()
-
-# MICROWAVES = requests.get('https://api.mapbox.com/datasets/v1/unavigate/clj1oov9211es2bl4rqmvdvzl/features?access_token={MY_TOKEN}').json()
-
-# @app.get('/all_water')
-# async def get_all_water(response: Response):
-#     response.headers['Access-Control-Allow-Origin'] = '*'
-#     return DRINKING_WATER
-
+# Search within the database for results mathces the query and return them
 @app.get('/matches')
 async def get_matches(query: str, response: Response):
     response.headers['Access-Control-Allow-Origin'] = '*'
@@ -65,7 +57,14 @@ async def get_matches(query: str, response: Response):
             for hit in results]
         return filtered_data
 
+# Get the directions from the mapbox api
+@app.get('/directions')
+async def get_directions(origin_latitude: str, origin_longitude: str, dest_latitude: str, dest_longitude: str, search_value, language, response: Response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response = requests.get(f'https://api.mapbox.com/directions/v5/mapbox/walking/{origin_longitude},{origin_latitude};{dest_longitude},{dest_latitude}?steps=true&geometries=geojson&access_token={MY_TOKEN}&language={language}').json()
+    return response
 
+# Run the server
 if __name__ == "__main__":
     import uvicorn
     create_buildings()
