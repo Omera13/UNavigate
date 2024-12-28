@@ -30,10 +30,10 @@ function MapComponent() {
     longitude: 34.836179,
     latitude: 32.176097,
     maxBounds: [
-      [34.83178, 32.17490],
-      [34.84116, 32.17832]
+      [34.83025, 32.17354],
+      [34.84216, 32.17950]
     ],
-    zoom: 17,
+    zoom: 16,
   });
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null); // Origin coordinates
@@ -228,6 +228,7 @@ function MapComponent() {
         const map = mapRef.current.getMap();
         mapRef.current = map;
       }}
+      maxBounds={[[0, 0], [0, 0]]}
     >
       <IonSearchbar
         placeholder= "Enter origin (Click the location icon for live location)"

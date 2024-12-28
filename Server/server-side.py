@@ -4,10 +4,14 @@ from whoosh.fields import Schema, TEXT, ID, STORED
 from whoosh import index
 from whoosh.qparser import QueryParser, OrGroup
 import os
+from dotenv import load_dotenv
 
 app = FastAPI()
 
-MY_TOKEN = 'pk.eyJ1IjoidW5hdmlnYXRlIiwiYSI6ImNsaWJoc2l1ODBkbHEzZW11emw0cGZucTAifQ.otIbJBL8CWmaA9dGYNkZHA'
+# use dotdev to get the token from env file
+load_dotenv()
+# get the key"
+MY_TOKEN = os.getenv("MY_TOKEN")
 
 # Create the schema for the index
 BUILDINGS_SCHEMA = Schema(
@@ -36,20 +40,21 @@ def create_buildings():
 # Search within the database for results mathces the query and return them
 @app.get('/matches')
 async def get_matches(query: str, response: Response):
-    response.headers['Access-Control-Allow-Origin'] = '*'
+    # As Ffrontend and the backend are on different origins we allow CORS
+    response.headers['Access-Control-Allow-Origin'] = '*' # CORS , a security feature in browsers that restricts the ability of a web page to make requests across origins 
     if len(query) < 1:
         return []
-    parser = QueryParser("place_name", schema=BUILDINGS_SCHEMA, group=OrGroup)
+    parser = QueryParser("place_name", schema=BUILDINGS_SCHEMA, group=OrGroup) 
     starts_with_query = parser.parse(f"{query}* OR place_he_name:{query}* OR place_building:{query}*")
     buildings_query_2_letter = parser.parse(f"place_building:{query[:2]}*")
     buildings_query_1_letter = parser.parse(f"place_building:{query[:1]}*")
     fuzzy_query = parser.parse(f"{query}~3 OR place_he_name:{query}~3 OR place_building:{query}~3")
     combined_query = starts_with_query | fuzzy_query | buildings_query_2_letter | buildings_query_1_letter
-    with BUILDINGS_IDX.searcher() as searcher:
+    with BUILDINGS_IDX.searcher() as searcher: 
         results = searcher.search(combined_query)
         filtered_data = [
             {
-                "place_name": hit['place_name'],
+                "place_name": hit['place_name'], 
                 "place_he_name": hit['place_he_name'],
                 "place_building": hit.get('place_building', None),
                 "center": hit['center'],
